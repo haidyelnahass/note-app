@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const app = express();
 const authRoutes = require('./routes/auth');
+const noteRoutes = require('./routes/note');
+
 const bodyParser = require('body-parser');
 const User = require('./models/User');
 const bcrypt = require('bcryptjs');
@@ -17,6 +19,7 @@ app.use(cors({
 }));
 
 app.use(authRoutes);
+app.use(noteRoutes);
 
 app.use((error,req,res,next) => {
     console.log(error);
