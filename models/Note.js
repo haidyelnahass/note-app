@@ -12,7 +12,12 @@ const NoteSchema = new Schema({
     },
     color: {
         type: String,
-        default:"#fff"
+        default:"#ffffff"
+    },
+    creator: {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+        required: true,
     }
 },{timestamps:true});
 

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const Note = require('./Note');
 
 const Schema = mongoose.Schema;
 
@@ -15,11 +16,17 @@ const UserSchema = new Schema({
         type: String,
         required: true,
     },
-    notes: {
+    notes: [{
         type: Schema.Types.ObjectId,
         ref: 'Note'
-    },
+    }],
 
+});
+
+UserSchema.pre('remove', function(next) {
+    //on deletion of user, delete all related posts.
+    Note.remove({creator: this._id}).exec();
+    next();
 });
 
 module.exports = mongoose.model('User', UserSchema);

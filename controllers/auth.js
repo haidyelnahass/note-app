@@ -102,14 +102,32 @@ exports.postSignup = (req, res, next) => {
 
 }
 exports.getUsers = (req, res, next) => {
+    const { search, sort } = req.query;
+    if (sort && ['name', 'email', 'password'].indexOf(sort) === -1) {
+        const error = new Error('WRONG_SORT_QUERY');
+        error.statusCode = 403;
+        throw error;
+    }
     User.find()
+    .populate('notes')
+    .sort(sort)
     .then(users => {
         if (!users) {
             const error = new Error('No user with that email!');
             error.statusCode = 400;
             throw error;
         }
-        return res.status(201).json({
+        if (search) {
+            users = users.filter(user => {
+                for (method in user) {
+                    if (method.toLocaleLowerCase().match(search.toLocaleLowerCase())) {
+                        return true
+                    }
+                }
+                return false
+            })
+        }
+        return res.status(200).json({
             message: 'Users fetched successfully!',
             users: users,
         });
@@ -125,6 +143,7 @@ exports.getUser = (req, res, next) => {
     const userId = req.params.id;
     console.log(userId);
     User.findById(userId)
+    .populate('notes')
     .then(user => {
         if (!user) {
             const error = new Error('No user with that email!');
@@ -166,7 +185,7 @@ exports.updateUser = (req, res, next) => {
         .then(hashedPass => {
 
             newPass = hashedPass;
-            return User.findById(userId);
+            return User.findById(userId).populate('notes');
             
         }).then(user => {
             if (!user) {
@@ -199,10 +218,13 @@ exports.deleteUser = (req, res, next) => {
 
     const userId = req.params.id;
 
-    User.findByIdAndDelete(userId)
+    User.findByIdAndRemove(userId)
     .then(result=> {
+        console.log(result);
 
-        return res.status(201).json({
+        result.remove();
+
+        return res.status(200).json({
             message: 'User deleted successfully!',
             userId: result._id,
         });

@@ -43,7 +43,6 @@ module.exports = (req,res,next) => {
     //like user id to use it in other places
 
     req.userId = decodedToken.userId;
-
     next();
 
 

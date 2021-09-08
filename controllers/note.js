@@ -1,7 +1,8 @@
 const Note = require('../models/Note')
 const { validationResult } = require('express-validator/check');
+const user = require('../models/User');
 
-exports.postNote = (req, res, next) => {
+exports.postNote = async (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
         const error = new Error('WRONG_FORMAT');
@@ -10,14 +11,35 @@ exports.postNote = (req, res, next) => {
         //to keep the errors retrieved by validation!
         throw error;
     }
-
-    const note = new Note(req.body);
+    const note = new Note({
+        title: req.body.title,
+        description: req.body.description,
+        color: req.body.color,
+        creator: req.userId,
+    });
+    let savedNote;
+    let newUser;
     note
         .save()
         .then(note => {
-            res.status(201).json(note)
+            savedNote = note;
+            return user.findById(req.userId);
+        })
+        .then(user => {
+            newUser = user;
+            return newUser.notes.push(note);  
+        })
+        .then(result => {
+            return newUser.save();
+            
+        }).then(result => {
+            res.status(201).json(note);
+            
         })
         .catch(err => next(err))
+
+
+
 }
 
 exports.getNotes = async (req, res, next) => {
@@ -27,7 +49,7 @@ exports.getNotes = async (req, res, next) => {
         error.statusCode = 403;
         throw error;
     }
-    let notes = await Note.find().sort(sort)
+    let notes = await Note.find().sort(sort).populate('creator')
     if (search) {
         notes = notes.filter(note => {
             for (method in note) {
@@ -44,7 +66,7 @@ exports.getNotes = async (req, res, next) => {
 
 exports.getNoteById = (req, res, next) => {
     const id = req.params.id;
-    Note.findById(id)
+    Note.findById(id).populate('creator')
         .then(note => {
             if (!note) {
                 const error = new Error('NOT_FOUND');
@@ -59,11 +81,16 @@ exports.getNoteById = (req, res, next) => {
 exports.editNote = (req, res, next) => {
     const id = req.params.id;
 
-    Note.findById(id)
+    Note.findById(id).populate('creator')
         .then((note) => {
             if (!note) {
                 const error = new Error('NOT_FOUND');
                 error.statusCode = 404;
+                throw error;
+            }
+            if (note.creator.toString() !== req.userId) {
+                const error = new Error('Not authorized!');
+                error.statusCode = 403;
                 throw error;
             }
             Object.assign(note, req.body);
@@ -83,10 +110,29 @@ exports.delete = (req, res, next) => {
                 error.statusCode = 404;
                 throw error;
             }
-            return Note.deleteOne({ _id: Types.ObjectId(id) });
+            if (note.creator.toString() !== req.userId) {
+                const error = new Error('Not authorized!');
+                error.statusCode = 403;
+                throw error;
+            }
+            return Note.findByIdAndDelete(id);
         })
         .then(() => {
             res.status(200).json({ message: "Deleted" });
+            return user.findById(req.userId);
+        })
+        .then(user => {
+            user.posts.pull(postId);
+
+            return user.save();
+
+
+        }).then(result => {
+
+
+            return res.status(200).json({
+                message: 'Note deleted successfully!',
+            })
         })
         .catch(err => next(err))
 }

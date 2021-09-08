@@ -9,7 +9,7 @@ const bodyParser = require('body-parser');
 const User = require('./models/User');
 const bcrypt = require('bcryptjs');
 
-const MONGODB_URI = '';
+const MONGODB_URI = 'mongodb+srv://haidy:nodejs@cluster0.jxnq9.mongodb.net/note-app?retryWrites=true&w=majority';
 
 
 app.use(bodyParser.json());
