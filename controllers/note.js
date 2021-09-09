@@ -122,7 +122,7 @@ exports.delete = (req, res, next) => {
             return user.findById(req.userId);
         })
         .then(user => {
-            user.posts.pull(postId);
+            user.notes.pull(id);
 
             return user.save();
 
